@@ -22,18 +22,19 @@ type Agent struct {
 }
 
 type Generator struct {
-	browsers           []Browser
-	platforms          []Platform
-	os                 []OperatingSystem
-	minVersion         int
-	maxVersion         int
-	languageProfiles   [][]AcceptHeaderPart
-	requestType        RequestType
-	headerSorter       HeaderSorter
-	fullFingerprint    bool
-	h2Only             bool
-	fingerprintProfile FingerprintProfile
-	agentPool          sync.Pool
+	browsers               []Browser
+	platforms              []Platform
+	os                     []OperatingSystem
+	minVersion             int
+	maxVersion             int
+	languageProfiles       [][]AcceptHeaderPart
+	requestType            RequestType
+	headerSorter           HeaderSorter
+	fullFingerprint        bool
+	h2Only                 bool
+	fingerprintProfile     FingerprintProfile
+	h2RandomizationProfile H2RandomizationProfile
+	agentPool              sync.Pool
 }
 
 var allRealOS = []OperatingSystem{
@@ -91,17 +92,18 @@ func NewGenerator(opts ...Option) *Generator {
 	}
 
 	g := &Generator{
-		browsers:           []Browser{BrowserRandom},
-		platforms:          []Platform{PlatformRandom},
-		os:                 []OperatingSystem{OSRandom},
-		minVersion:         114,
-		maxVersion:         140,
-		languageProfiles:   defaultLanguages,
-		requestType:        RequestTypeNavigate,
-		headerSorter:       PriorityHeaderSorter,
-		fullFingerprint:    false,
-		h2Only:             true,
-		fingerprintProfile: FingerprintProfileNormal,
+		browsers:               []Browser{BrowserRandom},
+		platforms:              []Platform{PlatformRandom},
+		os:                     []OperatingSystem{OSRandom},
+		minVersion:             114,
+		maxVersion:             140,
+		languageProfiles:       defaultLanguages,
+		requestType:            RequestTypeNavigate,
+		headerSorter:           PriorityHeaderSorter,
+		fullFingerprint:        false,
+		h2Only:                 true,
+		fingerprintProfile:     FingerprintProfileNormal,
+		h2RandomizationProfile: H2RandomizationProfileNone,
 	}
 
 	g.agentPool.New = func() any {
@@ -212,6 +214,11 @@ func (g *Generator) Generate() (*Agent, error) {
 	)
 
 	agent.H2Settings = profile.H2Settings()
+
+	if g.h2RandomizationProfile != H2RandomizationProfileNone {
+		agent.H2Settings = randomizeH2Settings(agent.H2Settings, g.h2RandomizationProfile)
+	}
+
 	agent.Headers.Set("X-Legit-Browser-Family", string(profile.Family))
 
 	if g.fingerprintProfile == FingerprintProfileMaximum {

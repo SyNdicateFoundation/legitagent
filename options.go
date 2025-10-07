@@ -58,6 +58,14 @@ const (
 	FingerprintProfileMaximum
 )
 
+type H2RandomizationProfile int
+
+const (
+	H2RandomizationProfileNone H2RandomizationProfile = iota
+	H2RandomizationProfileNormal
+	H2RandomizationProfileMaximum
+)
+
 type Option func(*Generator)
 
 func WithBrowsers(b ...Browser) Option {
@@ -152,5 +160,11 @@ func WithH2Only(h2 bool) Option {
 func WithFingerprintProfile(profile FingerprintProfile) Option {
 	return func(g *Generator) {
 		g.fingerprintProfile = profile
+	}
+}
+
+func WithH2Randomization(profile H2RandomizationProfile) Option {
+	return func(g *Generator) {
+		g.h2RandomizationProfile = profile
 	}
 }

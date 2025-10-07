@@ -205,6 +205,10 @@ Customize the generator using these `Option` functions:
 -   `WithFullFingerprint(bool)`: Toggles the inclusion of extended `sec-ch-ua-*` headers for a more detailed fingerprint.
 -   `WithH2Only(bool)`: (Default: `true`) Ensures only browsers that support HTTP/2 are generated.
 -   `WithFingerprintProfile(profile FingerprintProfile)`: Sets the anti-fingerprinting level (`FingerprintProfileNormal` or `FingerprintProfileMaximum`).
+-   `WithH2Randomization(profile H2RandomizationProfile)`: Controls the randomization of HTTP/2 settings to further prevent fingerprinting.
+    -   `H2RandomizationProfileNone` (Default): Uses the exact, default settings for the generated browser.
+    -   `H2RandomizationProfileNormal`: Applies small, realistic variations to the browser's default settings.
+    -   `H2RandomizationProfileMaximum`: Uses a high-throughput profile with aggressive, randomized values, including setting `MaxConcurrentStreams` to `math.MaxUint32` minus a small random salt.
 
 ## Architectural Philosophy: Consistency is Legitimacy
 

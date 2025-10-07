@@ -1,0 +1,101 @@
+package legitagent
+
+import (
+	"math"
+	"reflect"
+	"testing"
+
+	"golang.org/x/net/http2"
+)
+
+func TestH2RandomizationProfileNone(t *testing.T) {
+	g := NewGenerator(
+		WithBrowsers(BrowserChrome),
+		WithH2Randomization(H2RandomizationProfileNone),
+	)
+	agent, err := g.Generate()
+	if err != nil {
+		t.Fatalf("Failed to generate agent: %v", err)
+	}
+	defer g.ReleaseAgent(agent)
+
+	expectedSettings := GetChromiumH2Settings()
+	if !reflect.DeepEqual(agent.H2Settings, expectedSettings) {
+		t.Errorf("Expected H2 settings to be the default for the browser, but they were modified.\nGot: %v\nWant: %v", agent.H2Settings, expectedSettings)
+	}
+}
+
+func TestH2RandomizationProfileNormal(t *testing.T) {
+	g := NewGenerator(
+		WithBrowsers(BrowserChrome),
+		WithH2Randomization(H2RandomizationProfileNormal),
+	)
+
+	agent1, err := g.Generate()
+	if err != nil {
+		t.Fatalf("Failed to generate agent 1: %v", err)
+	}
+	defer g.ReleaseAgent(agent1)
+
+	agent2, err := g.Generate()
+	if err != nil {
+		t.Fatalf("Failed to generate agent 2: %v", err)
+	}
+	defer g.ReleaseAgent(agent2)
+
+	baseSettings := GetChromiumH2Settings()
+
+	if reflect.DeepEqual(agent1.H2Settings, baseSettings) {
+		t.Error("H2 settings were not randomized and are identical to the base settings.")
+	}
+
+	if reflect.DeepEqual(agent1.H2Settings, agent2.H2Settings) {
+		t.Logf("Agent 1 Settings: %v", agent1.H2Settings)
+		t.Logf("Agent 2 Settings: %v", agent2.H2Settings)
+		t.Error("Generated two agents with normal H2 randomization, but their settings were identical.")
+	}
+
+	baseInitialWindow, _ := baseSettings[http2.SettingInitialWindowSize]
+	randomInitialWindow, ok := agent1.H2Settings[http2.SettingInitialWindowSize]
+	if !ok {
+		t.Fatal("Expected SettingInitialWindowSize to be present in randomized settings.")
+	}
+
+	lowerBound := float64(baseInitialWindow) * 0.85
+	upperBound := float64(baseInitialWindow) * 1.15
+
+	if float64(randomInitialWindow) < lowerBound || float64(randomInitialWindow) > upperBound {
+		t.Errorf("Randomized initial window size is out of expected range. Got %d, expected between %.0f and %.0f",
+			randomInitialWindow, lowerBound, upperBound)
+	}
+}
+
+func TestH2RandomizationProfileMaximum(t *testing.T) {
+	g := NewGenerator(WithH2Randomization(H2RandomizationProfileMaximum))
+	agent, err := g.Generate()
+	if err != nil {
+		t.Fatalf("Failed to generate agent: %v", err)
+	}
+	defer g.ReleaseAgent(agent)
+
+	settings := agent.H2Settings
+	if settings == nil {
+		t.Fatal("H2Settings are nil for Maximum randomization profile.")
+	}
+
+	if val, ok := settings[http2.SettingEnablePush]; !ok || val != 0 {
+		t.Errorf("Expected SettingEnablePush to be 0, got %d (present: %v)", val, ok)
+	}
+
+	if val, ok := settings[http2.SettingMaxFrameSize]; !ok || val < 13107 || val > 19660 { // 16384 +/- 20%
+		t.Errorf("Expected SettingMaxFrameSize to be in a randomized range around 16384, got %d", val)
+	}
+
+	if val, ok := settings[http2.SettingMaxConcurrentStreams]; !ok || val < (math.MaxUint32-1024) {
+		t.Errorf("Expected SettingMaxConcurrentStreams to be math.MaxUint32 minus a small salt, got %d", val)
+	}
+
+	if val, ok := settings[http2.SettingInitialWindowSize]; !ok || val < 52428 || val > 78642 { // 65535 +/- 20%
+		t.Errorf("Expected SettingInitialWindowSize to be in a randomized range around 65535, got %d", val)
+	}
+}

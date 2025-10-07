@@ -253,81 +253,83 @@ You can specify which bot profiles to use by passing one or more of the followin
 This is how you apply the full network fingerprint to a real HTTP request using `utls`.
 
 ```go
-import (
-"context"
-"crypto/tls"
-"fmt"
-"io"
-"log"
-"net"
-"net/http"
-"time"
+package main
 
-"github.com/SyNdicateFoundation/legitagent"
-utls "github.com/refraction-networking/utls"
-"golang.org/x/net/http2"
+import (
+	"context"
+	"crypto/tls"
+	"fmt"
+	"io"
+	"log"
+	"net"
+	"net/http"
+	"time"
+	
+	"github.com/SyNdicateFoundation/legitagent"
+	utls "github.com/refraction-networking/utls"
+	"golang.org/x/net/http2"
 )
 
 func main() {
-g := legitagent.NewGenerator()
-agent, err := g.Generate()
-if err != nil {
-log.Fatalf("Failed to generate agent: %v", err)
-}
-defer g.ReleaseAgent(agent)
-
-// Create a custom DialTLSContext function that uses the agent's TLS fingerprint
-dialTLSContext := func (ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
-rawConn, err := net.DialTimeout(network, addr, 10*time.Second)
-if err != nil {
-return nil, err
-}
-
-uTLSConfig := &utls.Config{
-ServerName:         cfg.ServerName,
-InsecureSkipVerify: true,
-NextProtos:         []string{"h2", "http/1.1"},
-}
-
-uconn := utls.UClient(rawConn, uTLSConfig, agent.ClientHelloID)
-if err := uconn.HandshakeContext(ctx); err != nil {
-return nil, err
-}
-return uconn, nil
-}
-
-// Create the HTTP/2 transport with the custom dialer
-h2Transport := &http2.Transport{
-DialTLSContext:  dialTLSContext,
-TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-}
-
-// Apply the agent's browser-specific H2 settings
-if agent.H2Settings != nil {
-for id, val := range agent.H2Settings {
-h2Transport.Settings = append(h2Transport.Settings, http2.Setting{ID: id, Val: val})
-}
-}
-
-client := &http.Client{
-Transport: h2Transport,
-Timeout:   15 * time.Second,
-}
-
-req, _ := http.NewRequest(http.MethodGet, "https://cloudflare.com/cdn-cgi/trace", nil)
-
-// Apply the generated headers
-req.Header = agent.Headers
-req.Header.Set("User-Agent", agent.UserAgent)
-
-resp, err := client.Do(req)
-if err != nil {
-log.Fatalf("Request failed: %v", err)
-}
-defer resp.Body.Close()
-
-body, _ := io.ReadAll(resp.Body)
-fmt.Println(string(body))
+	g := legitagent.NewGenerator()
+	agent, err := g.Generate()
+	if err != nil {
+		log.Fatalf("Failed to generate agent: %v", err)
+	}
+	defer g.ReleaseAgent(agent)
+	
+	// Create a custom DialTLSContext function that uses the agent's TLS fingerprint
+	dialTLSContext := func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+		rawConn, err := net.DialTimeout(network, addr, 10*time.Second)
+		if err != nil {
+			return nil, err
+		}
+		
+		uTLSConfig := &utls.Config{
+			ServerName:         cfg.ServerName,
+			InsecureSkipVerify: true,
+			NextProtos:         []string{"h2", "http/1.1"},
+		}
+		
+		uconn := utls.UClient(rawConn, uTLSConfig, agent.ClientHelloID)
+		if err := uconn.HandshakeContext(ctx); err != nil {
+			return nil, err
+		}
+		return uconn, nil
+	}
+	
+	// Create the HTTP/2 transport with the custom dialer
+	h2Transport := &http2.Transport{
+		DialTLSContext:  dialTLSContext,
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	
+	// Apply the agent's browser-specific H2 settings
+	if agent.H2Settings != nil {
+		for id, val := range agent.H2Settings {
+			h2Transport.Settings = append(h2Transport.Settings, http2.Setting{ID: id, Val: val})
+		}
+	}
+	
+	client := &http.Client{
+		Transport: h2Transport,
+		Timeout:   15 * time.Second,
+	}
+	
+	req, _ := http.NewRequest(http.MethodGet, "https://cloudflare.com/cdn-cgi/trace", nil)
+	
+	// Apply the generated headers
+	req.Header = agent.Headers
+	req.Header.Set("User-Agent", agent.UserAgent)
+	
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalf("Request failed: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	body, _ := io.ReadAll(resp.Body)
+	fmt.Println(string(body))
 }
 ```
 

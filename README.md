@@ -62,6 +62,54 @@ func main() {
 }
 ```
 
+## Beyond the User-Agent: True Fingerprint Evasion
+
+A User-Agent string is just one static data point. Sophisticated systems track users and bots by creating a fingerprint from a combination of many, often static, network-level properties. `legitagent` defeats this by making these properties **dynamic**.
+
+### How Dynamic Properties Make You Unfingerprintable
+
+-   **Dynamic JA3 (via `FingerprintProfileMaximum`):** The JA3 hash is created from the TLS ClientHello message, which includes a list of cipher suites and extensions in a specific order. By randomly shuffling the order of these lists for every agent generated, `legitagent` ensures that each connection produces a **completely different JA3 hash**. A server cannot build a consistent fingerprint if the fingerprint itself changes on every request.
+
+-   **Dynamic Header Order (via `FingerprintProfileMaximum`):** While browsers have a general priority for headers, the exact order is not strictly defined and can vary. `legitagent` mimics this by shuffling headers within their priority groups. This subtle randomization is much more realistic than a completely random order and avoids the static signature of a fixed, hardcoded header list.
+
+-   **Dynamic H2 Settings (via `WithH2Randomization`):** The HTTP/2 settings frame is another strong fingerprinting vector. A client that always sends the exact same H2 settings with the same values can be easily identified. By enabling randomization, `legitagent` introduces small, plausible "jitter" to these values. This makes each H2 fingerprint unique, significantly increasing the difficulty for a server to identify and track your client based on this vector.
+
+The combination of these dynamic properties means that an agent generated in `Maximum` profile is a moving target, presenting a new, unique, yet still plausible network fingerprint on every single run.
+
+## Scale of Uniqueness: A Quantitative Look
+
+The library is capable of generating a vast number of unique User-Agents and an even larger number of unique network fingerprints.
+
+### Unique User-Agent Strings: 684,082
+
+The number of unique User-Agent strings is a product of browser versions, compatible operating systems, and other variable tokens (like Android device models and build numbers).
+
+-   **Chromium Family (Chrome, Opera, Edge, Brave):** 684,000 combinations
+    -   `4 brands * 9 versions * 8 desktop OSes * 1000 build variations` = 288,000
+    -   `4 brands * 9 versions * 1 mobile OS (Android) * 11 device models * 1000 build variations` = 396,000
+-   **Gecko (Firefox):** 76 combinations
+    -   `1 brand * 4 versions * 8 desktop OSes` = 32
+    -   `1 brand * 4 versions * 1 mobile OS (Android) * 11 device models` = 44
+-   **WebKit (Safari):** 6 combinations
+    -   `1 brand * 2 versions * 2 desktop OSes (macOS)` = 4
+    -   `1 brand * 2 versions * 1 mobile OS (iOS)` = 2
+
+**Total unique User-Agent strings: 684,082**
+
+### Unique Network Fingerprints: Billions to Practically Infinite
+
+The network fingerprint is where the true anti-tracking power lies, as it combines the User-Agent with dynamic network-level data.
+
+-   **With `FingerprintProfileNormal`:** Over 1.5 Billion Combinations
+    -   Even in the default mode, headers are randomized. For a given Chromium User-Agent, there are over **2,300** possible header combinations from shuffling brands in `sec-ch-ua` (6), `Accept-Encoding` (12), and choosing an `Accept-Language` profile (16).
+    -   `684,082 User-Agents * 2,304 Header Variations` ≈ **1.57 Billion** unique fingerprints.
+
+-   **With `FingerprintProfileMaximum`:** Practically Infinite Combinations
+    -   The number of possibilities becomes combinatorially explosive:
+    1.  **TLS (JA3) Permutations:** The order of 16 cipher suites (16! ≈ 2.09 x 10¹³) and 14 extensions (14! ≈ 8.71 x 10¹⁰) are shuffled. This alone creates over **1.8 x 10²⁴ (1.8 septillion)** possible TLS fingerprints, making the JA3 hash unique on every generation.
+    2.  **H2 Settings Permutations:** The four randomized H2 settings have value ranges that multiply to over **2.8 x 10¹⁴ (280 trillion)** possible combinations.
+    -   **Result:** When these factors are combined, the number of unique fingerprints is **computationally infeasible to track**. It is a moving target that cannot be reliably identified or blacklisted.
+
 ## Advanced Usage & Examples
 
 ### Example 1: Generate a Specific Browser

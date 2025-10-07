@@ -34,6 +34,10 @@ type Generator struct {
 	h2Only                 bool
 	fingerprintProfile     FingerprintProfile
 	h2RandomizationProfile H2RandomizationProfile
+	useBotAgents           bool
+	botAgentTypes          []string
+	acceptEncodingEnabled  bool
+	acceptEnabled          bool
 	agentPool              sync.Pool
 }
 
@@ -104,6 +108,10 @@ func NewGenerator(opts ...Option) *Generator {
 		h2Only:                 true,
 		fingerprintProfile:     FingerprintProfileNormal,
 		h2RandomizationProfile: H2RandomizationProfileNone,
+		useBotAgents:           false,
+		botAgentTypes:          nil,
+		acceptEncodingEnabled:  false,
+		acceptEnabled:          true,
 	}
 
 	g.agentPool.New = func() any {
@@ -120,6 +128,47 @@ func NewGenerator(opts ...Option) *Generator {
 func (g *Generator) Generate() (*Agent, error) {
 	agent := g.agentPool.Get().(*Agent)
 	agent.Headers = make(http.Header)
+
+	if g.useBotAgents {
+		var eligibleBots []botProfile
+		if len(g.botAgentTypes) == 0 {
+			eligibleBots = allBotProfiles
+		} else {
+			for _, botName := range g.botAgentTypes {
+				if profiles, ok := botProfileCategories[botName]; ok {
+					eligibleBots = append(eligibleBots, profiles...)
+				}
+			}
+		}
+
+		if len(eligibleBots) == 0 {
+			return nil, fmt.Errorf("legitagent: no bot profiles found for the specified types: %v", g.botAgentTypes)
+		}
+
+		chosenProfile := fastrand.Choice(eligibleBots)
+
+		agent.UserAgent = chosenProfile.UserAgent
+		agent.ClientHelloID = chosenProfile.HelloID
+
+		for k, v := range chosenProfile.Headers {
+			agent.Headers.Set(k, v)
+		}
+
+		keys := make([]string, 0, len(chosenProfile.Headers))
+		for k := range chosenProfile.Headers {
+			keys = append(keys, k)
+		}
+		PriorityHeaderSorter(keys)
+		agent.HeaderOrder = append([]string{":method", ":authority", ":scheme", ":path"}, keys...)
+
+		if chosenProfile.HelloID == utls.HelloChrome_120 || chosenProfile.HelloID == utls.HelloEdge_106 {
+			agent.H2Settings = GetChromiumH2Settings()
+		} else {
+			agent.H2Settings = nil
+		}
+
+		return agent, nil
+	}
 
 	browser, err := g.resolveBrowser()
 	if err != nil {
@@ -199,6 +248,7 @@ func (g *Generator) Generate() (*Agent, error) {
 	agent.UserAgent = sb.String()
 
 	headerSorter := g.headerSorter
+
 	if g.fingerprintProfile == FingerprintProfileMaximum {
 		headerSorter = ShuffledPriorityHeaderSorter
 	}
@@ -213,13 +263,14 @@ func (g *Generator) Generate() (*Agent, error) {
 		headerSorter,
 	)
 
-	agent.H2Settings = profile.H2Settings()
-
-	if g.h2RandomizationProfile != H2RandomizationProfileNone {
-		agent.H2Settings = randomizeH2Settings(agent.H2Settings, g.h2RandomizationProfile)
+	if g.h2Only {
+		agent.H2Settings = profile.H2Settings()
+		if g.h2RandomizationProfile != H2RandomizationProfileNone {
+			agent.H2Settings = randomizeH2Settings(agent.H2Settings, g.h2RandomizationProfile)
+		}
+	} else {
+		agent.H2Settings = nil
 	}
-
-	agent.Headers.Set("X-Legit-Browser-Family", string(profile.Family))
 
 	if g.fingerprintProfile == FingerprintProfileMaximum {
 		agent.ClientHelloSpec = ChromeLatestSpec()
@@ -352,8 +403,13 @@ func (g *Generator) buildHeaders(browser browserProfile, os osProfile, platform 
 
 	languageTemplate := fastrand.Choice(g.languageProfiles)
 
-	headerMap["accept"] = buildAcceptHeader(fastrand.Choice(acceptTemplate))
-	headerMap["accept-encoding"] = generateAcceptEncoding()
+	if g.acceptEnabled {
+		headerMap["accept"] = buildAcceptHeader(fastrand.Choice(acceptTemplate))
+	}
+	if g.acceptEncodingEnabled {
+		headerMap["accept-encoding"] = generateAcceptEncoding()
+	}
+
 	headerMap["accept-language"] = buildAcceptHeader(languageTemplate)
 
 	if browser.ChromiumBased {
@@ -504,16 +560,6 @@ func getVersionKeys(m map[int]versionProfile) []int {
 	keys := make([]int, 0, len(m))
 	for k := range m {
 		keys = append(keys, k)
-	}
-	return keys
-}
-
-func getVersionKeysInRange(m map[int]versionProfile, min, max int) []int {
-	keys := make([]int, 0, len(m))
-	for k := range m {
-		if k >= min && k <= max {
-			keys = append(keys, k)
-		}
 	}
 	return keys
 }

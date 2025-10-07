@@ -199,3 +199,91 @@ func TestRandomOptions(t *testing.T) {
 		}
 	})
 }
+
+func TestAcceptEncodingOption(t *testing.T) {
+	t.Run("Disabled (Default)", func(t *testing.T) {
+		g := NewGenerator()
+		agent, err := g.Generate()
+		if err != nil {
+			t.Fatalf("Generate failed: %v", err)
+		}
+		defer g.ReleaseAgent(agent)
+
+		if val := agent.Headers.Get("accept-encoding"); val != "" {
+			t.Errorf("Expected 'accept-encoding' header to be empty, but got '%s'", val)
+		}
+	})
+
+	t.Run("Enabled", func(t *testing.T) {
+		g := NewGenerator(WithAcceptEncoding(true))
+		agent, err := g.Generate()
+		if err != nil {
+			t.Fatalf("Generate failed: %v", err)
+		}
+		defer g.ReleaseAgent(agent)
+
+		val := agent.Headers.Get("accept-encoding")
+		if val == "" {
+			t.Error("Expected 'accept-encoding' header to be present, but it was empty")
+		}
+		if !strings.Contains(val, "gzip") {
+			t.Errorf("Expected 'accept-encoding' to contain 'gzip', but got '%s'", val)
+		}
+	})
+
+	t.Run("Bot Agent (Unaffected)", func(t *testing.T) {
+		g := NewGenerator(WithBotAgents(BotGoogle), WithAcceptEncoding(false))
+		agent, err := g.Generate()
+		if err != nil {
+			t.Fatalf("Generate failed: %v", err)
+		}
+		defer g.ReleaseAgent(agent)
+
+		val := agent.Headers.Get("accept-encoding")
+		if val == "" {
+			t.Error("Expected bot agent 'accept-encoding' header to be present regardless of the option, but it was removed")
+		}
+	})
+}
+
+func TestAcceptHeaderOption(t *testing.T) {
+	t.Run("Enabled (Default)", func(t *testing.T) {
+		g := NewGenerator()
+		agent, err := g.Generate()
+		if err != nil {
+			t.Fatalf("Generate failed: %v", err)
+		}
+		defer g.ReleaseAgent(agent)
+
+		if val := agent.Headers.Get("accept"); val == "" {
+			t.Errorf("Expected 'accept' header to be present, but it was empty")
+		}
+	})
+
+	t.Run("Disabled", func(t *testing.T) {
+		g := NewGenerator(WithAccept(false))
+		agent, err := g.Generate()
+		if err != nil {
+			t.Fatalf("Generate failed: %v", err)
+		}
+		defer g.ReleaseAgent(agent)
+
+		if val := agent.Headers.Get("accept"); val != "" {
+			t.Errorf("Expected 'accept' header to be empty, but got '%s'", val)
+		}
+	})
+
+	t.Run("Bot Agent (Unaffected)", func(t *testing.T) {
+		g := NewGenerator(WithBotAgents(BotGoogle), WithAccept(false))
+		agent, err := g.Generate()
+		if err != nil {
+			t.Fatalf("Generate failed: %v", err)
+		}
+		defer g.ReleaseAgent(agent)
+
+		val := agent.Headers.Get("accept")
+		if val == "" {
+			t.Error("Expected bot agent 'accept' header to be present regardless of the option, but it was removed")
+		}
+	})
+}

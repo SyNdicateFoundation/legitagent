@@ -168,3 +168,22 @@ func WithH2Randomization(profile H2RandomizationProfile) Option {
 		g.h2RandomizationProfile = profile
 	}
 }
+
+func WithBotAgents(bots ...string) Option {
+	return func(g *Generator) {
+		g.useBotAgents = true
+		g.botAgentTypes = bots
+	}
+}
+
+func WithAcceptEncoding(enabled bool) Option {
+	return func(g *Generator) {
+		g.acceptEncodingEnabled = enabled
+	}
+}
+
+func WithAccept(enabled bool) Option {
+	return func(g *Generator) {
+		g.acceptEnabled = enabled
+	}
+}

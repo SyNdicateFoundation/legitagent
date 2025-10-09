@@ -39,6 +39,7 @@ type Generator struct {
 	acceptEncodingEnabled  bool
 	acceptEnabled          bool
 	agentPool              sync.Pool
+	zeroHeader             bool
 }
 
 var allRealOS = []OperatingSystem{
@@ -253,15 +254,20 @@ func (g *Generator) Generate() (*Agent, error) {
 		headerSorter = ShuffledPriorityHeaderSorter
 	}
 
-	agent.Headers, agent.HeaderOrder = g.buildHeaders(
-		profile,
-		osProf,
-		platformProf,
-		version,
-		fullVersion,
-		versionProf,
-		headerSorter,
-	)
+	if !g.zeroHeader {
+		agent.Headers, agent.HeaderOrder = g.buildHeaders(
+			profile,
+			osProf,
+			platformProf,
+			version,
+			fullVersion,
+			versionProf,
+			headerSorter,
+		)
+	} else {
+		agent.Headers = nil
+		agent.HeaderOrder = nil
+	}
 
 	if g.h2Only {
 		agent.H2Settings = profile.H2Settings()

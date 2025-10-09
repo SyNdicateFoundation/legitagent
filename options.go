@@ -187,3 +187,9 @@ func WithAccept(enabled bool) Option {
 		g.acceptEnabled = enabled
 	}
 }
+
+func WithZeroHeader(enabled bool) Option {
+	return func(g *Generator) {
+		g.zeroHeader = enabled
+	}
+}

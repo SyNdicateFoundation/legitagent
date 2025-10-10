@@ -55,6 +55,7 @@ type FingerprintProfile int
 const (
 	FingerprintProfileNormal FingerprintProfile = iota
 	FingerprintProfileMaximum
+	FingerprintProfileExtreme
 )
 
 type H2RandomizationProfile int

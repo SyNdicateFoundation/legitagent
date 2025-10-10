@@ -439,6 +439,14 @@ func (g *Generator) buildHeaders(browser browserProfile, os osProfile, platform 
 		}
 	}
 
+	if g.fingerprintProfile == FingerprintProfileExtreme {
+		for k := range headerMap {
+			if strings.HasPrefix(k, "sec-") && fastrand.Bool() {
+				delete(headerMap, k)
+			}
+		}
+	}
+
 	if g.requestType == RequestTypeNavigate && browser.Brand == "Brave" {
 		headerMap["sec-gpc"] = "1"
 	}

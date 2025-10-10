@@ -3,7 +3,7 @@ module github.com/SyNdicateFoundation/legitagent
 go 1.25.0
 
 require (
-	github.com/SyNdicateFoundation/fastrand v0.0.0-20251009000903-13c8c52be26b
+	github.com/SyNdicateFoundation/fastrand v1.0.0
 	github.com/refraction-networking/utls v1.8.0
 	golang.org/x/net v0.46.0
 )

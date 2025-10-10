@@ -1,5 +1,7 @@
 github.com/SyNdicateFoundation/fastrand v0.0.0-20251009000903-13c8c52be26b h1:2LFVmH2m+8IXAgqFN5j6Yzaa+vJLqf6wCZZVqMGNnFs=
 github.com/SyNdicateFoundation/fastrand v0.0.0-20251009000903-13c8c52be26b/go.mod h1:scoNe8HD8j06MLAOsiy//Lyd4JCGycOhFFhFqz4DKsE=
+github.com/SyNdicateFoundation/fastrand v1.0.0 h1:v0Nyc/0Ja91utWbTYeWDMXcS9ILqoQlWsoBotzkbAZ0=
+github.com/SyNdicateFoundation/fastrand v1.0.0/go.mod h1:scoNe8HD8j06MLAOsiy//Lyd4JCGycOhFFhFqz4DKsE=
 github.com/andybalholm/brotli v1.2.0 h1:ukwgCxwYrmACq68yiUqwIWnGY0cTPox/M94sVwToPjQ=
 github.com/andybalholm/brotli v1.2.0/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

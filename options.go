@@ -54,7 +54,6 @@ type FingerprintProfile int
 
 const (
 	FingerprintProfileNormal FingerprintProfile = iota
-
 	FingerprintProfileMaximum
 )
 

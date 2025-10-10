@@ -162,7 +162,7 @@ func (g *Generator) Generate() (*Agent, error) {
 		PriorityHeaderSorter(keys)
 		agent.HeaderOrder = append([]string{":method", ":authority", ":scheme", ":path"}, keys...)
 
-		if chosenProfile.HelloID == utls.HelloChrome_120 || chosenProfile.HelloID == utls.HelloEdge_106 {
+		if g.h2Only {
 			agent.H2Settings = GetChromiumH2Settings()
 		} else {
 			agent.H2Settings = nil

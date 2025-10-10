@@ -101,7 +101,7 @@ func NewGenerator(opts ...Option) *Generator {
 		platforms:              []Platform{PlatformRandom},
 		os:                     []OperatingSystem{OSRandom},
 		minVersion:             114,
-		maxVersion:             140,
+		maxVersion:             141,
 		languageProfiles:       defaultLanguages,
 		requestType:            RequestTypeNavigate,
 		headerSorter:           PriorityHeaderSorter,
@@ -191,7 +191,7 @@ func (g *Generator) Generate() (*Agent, error) {
 	allVersions := getVersionKeys(profile.Versions)
 	var possibleVersions []int
 
-	if g.minVersion != 114 || g.maxVersion != 140 {
+	if g.minVersion != 114 || g.maxVersion != 141 {
 		possibleVersions = make([]int, 0, len(allVersions))
 		for _, v := range allVersions {
 			if v >= g.minVersion && v <= g.maxVersion {

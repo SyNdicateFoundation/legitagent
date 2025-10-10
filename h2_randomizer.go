@@ -46,7 +46,6 @@ func randomizeH2Settings(baseSettings map[http2.SettingID]uint32, profile H2Rand
 		randomized[http2.SettingMaxFrameSize] = randomizeValue(16384, 0.20)
 		randomized[http2.SettingMaxConcurrentStreams] = uint32(math.MaxUint32 - fastrand.IntN(1024))
 	default:
-		panic("unhandled default case")
 	}
 
 	return randomized
